@@ -1,4 +1,4 @@
-'use restrict';
+'use strict';
 module.exports = (mongoose, db) => {
   let userSchema = mongoose.Schema({
     name: String,

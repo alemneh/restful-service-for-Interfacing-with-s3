@@ -8,6 +8,9 @@ let usersRouter = express.Router();
 let filesRouter = express.Router();
 
 require('./routes/users-routes')(usersRouter, db);
+require('./routes/files-routes')(filesRouter, db);
+
+
 
 app.use(bodyParser.json());
 app.use('/', usersRouter);
