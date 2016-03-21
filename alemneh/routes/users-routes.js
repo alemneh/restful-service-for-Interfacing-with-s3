@@ -11,7 +11,7 @@ module.exports = (usersRouter, db) => {
   .get((req, res) => {
     User.find({}, (err, users) => {
       if(err) return res.send(err);
-      res.json(users);
+      res.json({data:users});
     });
   })
   .post((req, res) => {
@@ -26,21 +26,35 @@ module.exports = (usersRouter, db) => {
   .get((req, res) => {
     User.findById(req.params.user, (err, user) => {
       if(err) return res.send(err);
-      res.json(user);
+      res.json({data:user});
     });
   })
   .put((req, res) => {
     User.findByIdAndUpdate(req.params.user, req.body, (err, user) => {
       if(err) return res.send(err);
-      res.send('Update was successful!');
+      res.json({msg:'Update was successful!'});
     });
   })
   .delete((req, res) => {
     User.findById(req.params.user, (err, user) => {
-      user.remove((err, user) => {
-        if(err) return res.send(err);
-        res.send('Delete was successful!');
+      user.files.forEach((file) => {
+        File.findById(file, (err, data) => {
+          if(err) throw err;
+          var params = {Bucket:'401d2-javascript', Key:data.name};
+          s3.deleteObject(params, (err, obj) => {
+            if(err) throw err;
+            data.remove((err, item) => {
+              if(err) throw err;
+              user.remove((err, user) => {
+                if(err) return res.send(err);
+                res.send({msg:'Delete was successful!'});
+              });
+            });
+          });
+        });
+
       });
+
     });
   });
 
@@ -50,9 +64,7 @@ module.exports = (usersRouter, db) => {
         .populate('files')
         .exec((err, user) => {
           if(err) throw err;
-          user.files.forEach((file) => {
-            res.send('Here is a list of urls for '+file._owner+'\'s files:\n'+file.url+'\n');
-          });
+          res.send('Here is a list of urls for \n'+user.files);
         });
   })
   .post((req, res) => {
@@ -65,13 +77,54 @@ module.exports = (usersRouter, db) => {
           var newUrl = new File({url: url, _owner: user.name, name:params.Key});
           newUrl.save((err, file) => {
             if(err) throw err;
-            User.findByIdAndUpdate(req.params.user, {files:file._id}, (err, user) => {
+            user.files.push(file._id);
+            User.findByIdAndUpdate(req.params.user, {files:user.files}, (err, user) => {
               if(err) throw err;
               res.send('URL added!');
+              res.end();
             });
           });
         });
       });
     });
   });
+
+  usersRouter.route('/users/:user/files/:file')
+  .get((req, res) => {
+    File.findById(req.params.file, (err, file) => {
+      if(err) throw err;
+      res.json(file);
+    });
+  })
+  .put((req, res) => {
+    File.findById(req.params.file, (err, file) => {
+      if(err) throw err;
+      var params = {Bucket:'401d2-javascript', Key: file.name, Body: req.body.content};
+      s3.putObject(params, (err, obj) => {
+        if(err) throw err;
+        res.send('Object updated!');
+      });
+    });
+  })
+  .delete((req, res) => {
+    File.findById(req.params.file, (err, file) => {
+      User.findById(req.params.user, (err, user) => {
+        var params = {Bucket: '401d2-javascript', Key: file.name};
+        s3.deleteObject(params, (err, obj) => {
+          file.remove((err, file) => {
+            if(err) throw err;
+            console.log('Before: '+user.files);
+            user.files.pull(file._id);
+            console.log('After : '+user.files);
+            User.findByIdAndUpdate(req.params.user, {files:user.files}, (err, user) => {
+              if(err) throw err;
+
+            });
+          });
+        });
+      });
+    });
+    res.send('URL deleted!');
+  });
+
 };
