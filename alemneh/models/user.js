@@ -1,8 +1,9 @@
 'use strict';
 module.exports = (mongoose, db) => {
-  let userSchema = mongoose.Schema({
+  let Schema = mongoose.Schema;
+  let userSchema = Schema({
     name: String,
-    files:[{ type: String, ref: 'File' }]
+    files:[{ type: Schema.Types.ObjectId, ref: 'File' }]
   });
   let User = mongoose.model('User', userSchema);
   db.User = User;

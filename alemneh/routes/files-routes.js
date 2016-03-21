@@ -16,10 +16,10 @@ module.exports = (filesRouter, db) => {
   .post((req, res) => {
     var params = {Bucket: '401d2-javascript', Key: req.body.fileName, Body: req.body.content};
     s3.putObject(params, (err, obj) => {
-      console.log('Uploaded');
+      console.log(params.Key);
     });
     s3.getSignedUrl('putObject', params, (err, url) => {
-      var newUrl = new File({url:url});
+      var newUrl = new File({url:url, name: params.Key});
       newUrl.save((err, data) => {
         if(err) throw err;
         res.json(data);
@@ -35,15 +35,22 @@ module.exports = (filesRouter, db) => {
 
   })
   .put((req, res) => {
-    File.findByIdAndUpdate(req.params.file, req.body, (err, file) => {
-      if(err) return res.send(err);
-      res.json('Update successful!');
+    File.findById(req.params.file, (err, file) => {
+      if(err) throw err;
+      var params = {Bucket:'401d2-javascript', Key: file.name, Body: req.body.content};
+      s3.putObject(params, (err, obj) => {
+        if(err) throw err;
+        res.send('Object updated!');
+      });
     });
   })
   .delete((req, res) => {
     File.findById(req.params.file, (err, file) => {
-      file.remove((err, file) => {
-        res.json('Delete successful!');
+      var params = {Bucket: '401d2-javascript', Key: file.name};
+      s3.deleteObject(params, (err, obj) => {
+        file.remove((err, file) => {
+          res.json('Delete successful!');
+        });
       });
     });
   });

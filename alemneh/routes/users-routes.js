@@ -2,10 +2,6 @@
 let AWS = require('aws-sdk');
 let s3 = new AWS.S3();
 
-s3.listBuckets((err, data) => {
-  if(err) throw err;
-  console.log(data);
-});
 
 module.exports = (usersRouter, db) => {
   let User = db.User;
@@ -50,7 +46,14 @@ module.exports = (usersRouter, db) => {
 
   usersRouter.route('/users/:user/files')
   .get((req, res) => {
-
+    User.findOne({_id: req.params.user})
+        .populate('files')
+        .exec((err, user) => {
+          if(err) throw err;
+          user.files.forEach((file) => {
+            res.send('Here is a list of urls for '+file._owner+'\'s files:\n'+file.url+'\n');
+          });
+        });
   })
   .post((req, res) => {
     var params = {Bucket: '401d2-javascript', Key: req.body.fileName, Body: req.body.content};
@@ -59,10 +62,10 @@ module.exports = (usersRouter, db) => {
       s3.putObject(params, (err, obj) => {
         console.log('Uploaded');
         s3.getSignedUrl('putObject', params, (err, url) => {
-          var newUrl = new File({url: url, _owner: user.name});
-          newUrl.save((err, data) => {
+          var newUrl = new File({url: url, _owner: user.name, name:params.Key});
+          newUrl.save((err, file) => {
             if(err) throw err;
-            User.findByIdAndUpdate(req.params.user, {files:url}, (err, user) => {
+            User.findByIdAndUpdate(req.params.user, {files:file._id}, (err, user) => {
               if(err) throw err;
               res.send('URL added!');
             });
@@ -71,12 +74,4 @@ module.exports = (usersRouter, db) => {
       });
     });
   });
-
-  usersRouter.route('/users/:user/files/:file')
-  .get((req, res) => {
-
-  })
-  .post((req, res) => {
-
-  });
-}
+};
