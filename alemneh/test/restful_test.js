@@ -7,7 +7,7 @@ let chaiHTTP = require('chai-http');
 chai.use(chaiHTTP);
 let request = chai.request;
 let expect = chai.expect;
-let db = require('../models/index');
+let db = require('../models');
 let User = db.User;
 let File = db.File;
 
@@ -65,7 +65,6 @@ describe('RESTful API', function() {
 
     it('should update a User', function(done) {
       var id = this.testUser._id;
-      console.log('User: '+this.testUser);
       chai.request('localhost:3000')
       .put('/users/' + id)
       .send({name: 'tesfu'})
@@ -89,7 +88,7 @@ describe('RESTful API', function() {
 
   describe('Needs an existing file to work with', function() {
     beforeEach(function(done) {
-      var testFile = new File({fileName: 'fileOne'});
+      var testFile = new File({name: 'fileOne'});
       testFile.save(function(err, data) {
         if(err) throw err;
 
@@ -99,19 +98,18 @@ describe('RESTful API', function() {
     });
 
     it('should be able to make a file in a beforeEach block', function() {
-      expect(this.testFile.fileName).to.eql('fileOne');
+      expect(this.testFile.name).to.eql('fileOne');
       expect(this.testFile).to.have.property('_id');
     });
 
     it('should update a File', function(done) {
       var id = this.testFile._id;
-      console.log('User: '+this.testFile);
       chai.request('localhost:3000')
       .put('/files/' + id)
       .send({fileName: 'fileTwo'})
       .end(function(err, res) {
         expect(err).to.eql(null);
-        expect(res.body.msg).to.eql('Object updated!');
+        expect(res.text).to.eql('Object updated!');
         done();
       });
     });
@@ -121,7 +119,7 @@ describe('RESTful API', function() {
         .del('/files/' + this.testFile._id)
         .end(function(err, res) {
           expect(err).to.eql(null);
-          expect(res.body.msg).to.eql('Delete successful!');
+          expect(res.text).to.eql('Delete successful!');
           done();
         });
     });

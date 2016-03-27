@@ -16,7 +16,6 @@ module.exports = (filesRouter, db) => {
   .post((req, res) => {
     var params = {Bucket: '401d2-javascript', Key: req.body.fileName, Body: req.body.content};
     s3.putObject(params, (err, obj) => {
-      console.log(params.Key);
     });
     s3.getSignedUrl('putObject', params, (err, url) => {
       var newUrl = new File({url:url, name: params.Key});
@@ -49,7 +48,7 @@ module.exports = (filesRouter, db) => {
       var params = {Bucket: '401d2-javascript', Key: file.name};
       s3.deleteObject(params, (err, obj) => {
         file.remove((err, file) => {
-          res.json('Delete successful!');
+          res.send('Delete successful!');
         });
       });
     });

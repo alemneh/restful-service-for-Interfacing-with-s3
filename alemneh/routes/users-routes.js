@@ -45,16 +45,15 @@ module.exports = (usersRouter, db) => {
             if(err) throw err;
             data.remove((err, item) => {
               if(err) throw err;
-              user.remove((err, user) => {
-                if(err) return res.send(err);
-                res.send({msg:'Delete was successful!'});
-              });
             });
           });
         });
-
       });
 
+      user.remove((err, user) => {
+        if(err) return res.send(err);
+        res.send({msg:'Delete was successful!'});
+      });
     });
   });
 
@@ -72,7 +71,6 @@ module.exports = (usersRouter, db) => {
     User.findById(req.params.user, (err, user) => {
       if(err) throw err;
       s3.putObject(params, (err, obj) => {
-        console.log('Uploaded');
         s3.getSignedUrl('putObject', params, (err, url) => {
           var newUrl = new File({url: url, _owner: user.name, name:params.Key});
           newUrl.save((err, file) => {
@@ -113,9 +111,7 @@ module.exports = (usersRouter, db) => {
         s3.deleteObject(params, (err, obj) => {
           file.remove((err, file) => {
             if(err) throw err;
-            console.log('Before: '+user.files);
             user.files.pull(file._id);
-            console.log('After : '+user.files);
             User.findByIdAndUpdate(req.params.user, {files:user.files}, (err, user) => {
               if(err) throw err;
 
